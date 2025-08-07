@@ -1,28 +1,25 @@
 object ModelConexaoDM: TModelConexaoDM
-  Height = 97
-  Width = 379
-  object FDGUIxWaitCursor1: TFDGUIxWaitCursor
-    Provider = 'Forms'
-    Left = 160
-    Top = 16
-  end
+  OldCreateOrder = False
+  Height = 299
+  Width = 528
   object FDConnection1: TFDConnection
     Params.Strings = (
-      'Database=c4dvendas'
-      'User_Name=SYSDBA'
+      'Database=C:\Code4D\Cursos\Vendas\Dados\DADOS.FDB'
+      'User_Name=sysdba'
       'Password=masterkey'
-      'Server=192.168.0.103'
-      'Port=3259'
-      'CharacterSet=WIN1252'
-      'Protocol=TCPIP'
       'DriverID=FB')
+    Connected = True
     LoginPrompt = False
-    Left = 48
-    Top = 16
+    Left = 120
+    Top = 48
+  end
+  object FDGUIxWaitCursor1: TFDGUIxWaitCursor
+    Provider = 'Forms'
+    Left = 112
+    Top = 104
   end
   object FDPhysFBDriverLink1: TFDPhysFBDriverLink
-    VendorLib = 'C:\Firebird\FB_2_5_9_27139_0_x86\bin\fbclient.dll'
-    Left = 288
-    Top = 16
+    Left = 112
+    Top = 160
   end
 end

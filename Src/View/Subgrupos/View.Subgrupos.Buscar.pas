@@ -3,19 +3,34 @@ unit View.Subgrupos.Buscar;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, View.Herancas.Buscar, Data.DB, Vcl.Menus, Vcl.StdCtrls, Vcl.Buttons,
-  Vcl.ExtCtrls, Vcl.Grids, Vcl.DBGrids, Vcl.Mask;
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  View.Herancas.Buscar,
+  Data.DB,
+  Vcl.StdCtrls,
+  Vcl.Buttons,
+  Vcl.ExtCtrls,
+  Vcl.Grids,
+  Vcl.DBGrids,
+  Model.Subgrupos.DM,
+  Vcl.Menus;
 
 type
   TViewSubgruposBuscar = class(TViewHerancasBuscar)
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-  public
-    FIdGrupo: integer; // Utilizado quando o produto for cadastrado, para filtrar somente os subgrupos de um grupo
+  protected
     procedure BuscarDados; override;
     procedure ChamarTelaCadastrar(const AId: Integer = 0); override;
+  public
   end;
 
 var
@@ -23,28 +38,22 @@ var
 
 implementation
 
-uses
-  Model.Subgrupos.DM, View.Subgrupos.Cadastrar;
-
 {$R *.dfm}
 
-{ TViewSubgruposBuscar }
+uses
+  View.Subgrupos.Cadastrar;
 
 procedure TViewSubgruposBuscar.BuscarDados;
 var
-  LStrBuscar,
-    LCondicao: string;
+  LStrBuscar: string;
+  LCondicao: string;
 begin
-  LStrBuscar := QuotedStr('%' + edtBuscar.Text + '%').ToUpper;
+  LStrBuscar := QuotedStr('%'+ edtBuscar.Text +'%').ToUpper;
   LCondicao := '';
-  case rdgFiltros.ItemIndex of
-    0: LCondicao := 'where s.id like ' + LStrBuscar;
-    1: LCondicao := 'where upper(s.descricao) like ' + LStrBuscar;
-    2: LCondicao := 'where upper(g.descricao) like ' + LStrBuscar;
+  case rdGroupFiltros.ItemIndex of
+    0: LCondicao := 'where(id like ' + LStrBuscar + ')';
+    1: LCondicao := 'where(upper(nome) like ' + LStrBuscar + ')';
   end;
-
-  if Self.FIdGrupo <> 0 then
-    LCondicao := Format('%s and s.id_grupo = %d', [LCondicao, Self.FIdGrupo]);
 
   ModelSubgruposDM.SubgruposBuscar(LCondicao);
   inherited;
@@ -52,14 +61,17 @@ end;
 
 procedure TViewSubgruposBuscar.ChamarTelaCadastrar(const AId: Integer = 0);
 var
-  LViewSubgruposCadastrar: TViewSubgruposCadastrar;
+  LViewSubgruposCadastrar: TViewSubGruposCadastrar;
 begin
   inherited;
-  LViewSubgruposCadastrar := TViewSubgruposCadastrar.Create(nil);
+  LViewSubgruposCadastrar := TViewSubGruposCadastrar.Create(nil);
   try
     LViewSubgruposCadastrar.IdRegistroAlterar := AId;
-    if LViewSubgruposCadastrar.ShowModal = mrOk then
+    if(LViewSubgruposCadastrar.ShowModal = mrOk)then
+    begin
+      inherited UltId := LViewSubgruposCadastrar.UltId;
       Self.BuscarDados;
+    end;
   finally
     LViewSubgruposCadastrar.Free;
   end;
@@ -68,14 +80,8 @@ end;
 procedure TViewSubgruposBuscar.FormCreate(Sender: TObject);
 begin
   inherited;
-  if not Assigned(ModelSubgruposDM) then
+  if(ModelSubgruposDM = nil)then
     ModelSubgruposDM := TModelSubgruposDM.Create(nil);
-
-  Self.DBGrid1.Columns[0].Width := 64;
-  Self.DBGrid1.Columns[2].Width := 273;
-  Self.DBGrid1.Columns[3].Width := 272;
-  Self.DBGrid1.Columns[4].Width := 130;
-  Self.DBGrid1.Columns[5].Width := 130;
 end;
 
 procedure TViewSubgruposBuscar.FormDestroy(Sender: TObject);

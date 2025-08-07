@@ -10,15 +10,13 @@ type
   private
     FNome: string;
   public
-    constructor Create(AName: string);
+    constructor Create(const AName: string);
     property Nome: string read FNome write FNome;
   end;
 
 implementation
 
-{ FieldName }
-
-constructor FieldName.Create(AName: string);
+constructor FieldName.Create(const AName: string);
 begin
   FNome := AName;
 end;

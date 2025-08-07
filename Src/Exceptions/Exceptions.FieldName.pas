@@ -8,17 +8,15 @@ uses
 type
   ExceptionsFieldName = class(Exception)
   private
-    FFieldName: string;
+    FFieldName: String;
   public
-    constructor Create(AMessage, AFieldName: string); reintroduce;
-    property FieldName: string read FFieldName write FFieldName;
+    constructor Create(const AMessage, AFieldName: string); reintroduce;
+    property FieldName: String read FFieldName write FFieldName;
   end;
 
 implementation
 
-{ ExceptionsFieldName }
-
-constructor ExceptionsFieldName.Create(AMessage, AFieldName: string);
+constructor ExceptionsFieldName.Create(const AMessage, AFieldName: string);
 begin
   Self.Message := AMessage;
   FFieldName := AFieldName;

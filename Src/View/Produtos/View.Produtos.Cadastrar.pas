@@ -3,151 +3,143 @@ unit View.Produtos.Cadastrar;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, View.Herancas.Cadastrar, Data.DB, Vcl.StdCtrls, Vcl.Buttons, Vcl.ExtCtrls,
-  Vcl.Mask, Vcl.DBCtrls, RTTI.FieldName;
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  View.Herancas.Cadastrar,
+  Data.DB,
+  Vcl.StdCtrls,
+  Vcl.Buttons,
+  Vcl.ExtCtrls,
+  Vcl.Mask,
+  Vcl.DBCtrls,
+  Vcl.Menus,
+  Vcl.Imaging.pngimage,
+  Model.Produtos.DM,
+  Model.Subgrupos.DM,
+  View.Subgrupos.Buscar,
+  RTTI.FieldName,
+  Exceptions.FieldName,
+  Utils,
+  JPEG;
 
 type
   TViewProdutosCadastrar = class(TViewHerancasCadastrar)
-    edtID: TDBLabeledEdit;
+    Label1: TLabel;
+    edtCodigo: TDBEdit;
+    Label2: TLabel;
+
     [FieldName('NOME')]
-    edtNOME: TDBLabeledEdit;
-    edtDESCRICAO: TDBLabeledEdit;
-    pnlAtivo: TPanel;
-    chkAtivo: TDBCheckBox;
-    [FieldName('ID_GRUPO')]
-    edtIdGrupo: TLabeledEdit;
-    edtDescricaoGrupo: TLabeledEdit;
+    edtNome: TDBEdit;
+
+    Label3: TLabel;
+    edtDescricao: TDBEdit;
+    Label4: TLabel;
+
     [FieldName('PRECO_CUSTO')]
-    edtPRECO_CUSTO: TDBLabeledEdit;
-    edtDTHR_INSERT: TDBLabeledEdit;
-    edtDTHR_UPDATE: TDBLabeledEdit;
-    [FieldName('PORCENTAGEM_VENDA')]
-    edtPORCENTAGEM_VENDA: TDBLabeledEdit;
+    edtPrecoCusto: TDBEdit;
+    Label5: TLabel;
+
+    [FieldName('PORCENTAGEM')]
+    edtPorcentagem: TDBEdit;
+    Label6: TLabel;
+
     [FieldName('PRECO_VENDA')]
-    edtPRECO_VENDA: TDBLabeledEdit;
-    [FieldName('ID_SUBGRUPO')]
-    edtIdSubgrupo: TLabeledEdit;
-    edtDescricaoSubgrupo: TLabeledEdit;
-    [FieldName('CODIGO_BARRAS')]
-    edtCODIGO_BARRAS: TDBLabeledEdit;
-    pnlUnidade: TPanel;
-    lblUnidade: TLabel;
+    edtPrecoVenda: TDBEdit;
+    Label7: TLabel;
+
     [FieldName('UNIDADE')]
-    cmbUnidade: TComboBox;
-    procedure FormShow(Sender: TObject);
-    procedure btnGravarClick(Sender: TObject);
-    procedure edtIdGrupoKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure edtIdGrupoExit(Sender: TObject);
+    edtUnidade: TDBEdit;
+    Label8: TLabel;
+
+    [FieldName('CODIGO_BARRAS')]
+    edtCodigoBarras: TDBEdit;
+    Label9: TLabel;
+
+    [FieldName('ID_SUBGRUPO')]
+    edtIdSubgrupo: TDBEdit;
+    edtSubgrupo: TEdit;
+    Panel1: TPanel;
+    imgFoto: TImage;
+    pMenuFoto: TPopupMenu;
+    BuscarFoto1: TMenuItem;
+    LimparFoto1: TMenuItem;
+    OpenDialog1: TOpenDialog;
     procedure edtIdSubgrupoExit(Sender: TObject);
     procedure edtIdSubgrupoKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure edtPRECO_CUSTOExit(Sender: TObject);
-    procedure edtPORCENTAGEM_VENDAExit(Sender: TObject);
-    procedure edtPRECO_VENDAExit(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure btnGravarClick(Sender: TObject);
+    procedure edtPrecoCustoExit(Sender: TObject);
+    procedure edtPorcentagemExit(Sender: TObject);
+    procedure edtPrecoVendaExit(Sender: TObject);
+    procedure BuscarFoto1Click(Sender: TObject);
+    procedure LimparFoto1Click(Sender: TObject);
   private
-    function CalcularPorcentagemVenda: Single;
-    function CalcularPrecoVenda: Single;
+    FAlterarFoto: Boolean;
+    FFotoOrigemAlterar: string;
+    procedure CalcularPrecoVenda;
+    procedure CalcularPorcentagem;
+    procedure ProcessarImagemAoGravar;
+    procedure CarregarFotoAtual;
   public
 
   end;
 
-implementation
+var
+  ViewProdutosCadastrar: TViewProdutosCadastrar;
 
-uses
-  Model.Produtos.DM, Exceptions.FieldName, Utils, View.Grupos.Buscar, Model.Grupos.DM, View.Subgrupos.Buscar,
-  Model.Subgrupos.DM, System.StrUtils;
+implementation
 
 {$R *.dfm}
 
 procedure TViewProdutosCadastrar.btnGravarClick(Sender: TObject);
 begin
-  if DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat <= DataSource1.DataSet.FieldByName('PRECO_CUSTO').AsFloat then
-    if Application.MessageBox('O Preço de Venda é menor ou igual ao que o Preço de Custo.' + sLineBreak +
-      'Confirma a Gravação?', 'Atenção', MB_ICONWARNING + MB_YESNO + MB_DEFBUTTON2) = IDNO then
-    begin
-      edtPRECO_VENDA.SetFocus;
-      Exit;
-    end;
-
   try
-    if cmbUnidade.Text <> '' then
-      DataSource1.DataSet.FieldByName('UNIDADE').AsString := Copy(cmbUnidade.Text, 1, 3);
-
-    TUtils.TryActiveControlOnExit; //Executa algum OnExit pendente
-    DataSource1.Dataset.Post;
+    DataSource1.DataSet.Post;
+    DataSource1.DataSet.Edit;
+    Self.ProcessarImagemAoGravar;
+    DataSource1.DataSet.Post;
   except
     on E: ExceptionsFieldName do
-     TUtils.TratarExceptionsFieldName(Self, E);
+      TUtils.TratarExceptionsFieldName(Self, E);
   end;
   inherited;
 end;
 
-function TViewProdutosCadastrar.CalcularPorcentagemVenda: Single;
-begin
-  // Fórmula
-  // % Venda := (1 - (R$ Custo / R$ Venda)) * 100
-  Result := TUtils.Arredondar(
-                              (1 - (
-                                    DataSource1.DataSet.FieldByName('PRECO_CUSTO').AsFloat /
-                                      DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat
-                                   )
-                              )
-                              * 100,
-                              2
-                             );
-end;
-
-function TViewProdutosCadastrar.CalcularPrecoVenda: Single;
-begin
-  // Fórmula
-  // R$ Venda := R$ Custo / (1 - (% Venda / 100))
-  Result := TUtils.Arredondar(
-                              DataSource1.DataSet.FieldByName('PRECO_CUSTO').AsFloat /
-                                (1 - (
-                                      DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat / 100
-                                     )
-                                ),
-                              2
-                             );
-end;
-
-procedure TViewProdutosCadastrar.edtIdGrupoExit(Sender: TObject);
+procedure TViewProdutosCadastrar.ProcessarImagemAoGravar;
 var
-  LModelGruposDM: TModelGruposDM;
+  LImgNome: string;
+  LDestino: string;
 begin
-  inherited;
-  edtDescricaoGrupo.Clear;
-  if Trim(edtIdGrupo.Text).IsEmpty then
-    Exit;
-
-  LModelGruposDM := TModelGruposDM.Create(nil);
-  try
-    LModelGruposDM.LookGrupo(StrToIntDef(edtIdGrupo.Text, 0));
-    if LModelGruposDM.QLook.IsEmpty then
-    begin
-      edtIdGrupo.SetFocus;
-      raise Exception.Create('Grupo não localizado.');
-    end;
-
-    edtDescricaoGrupo.Text := LModelGruposDM.QLookDESCRICAO.AsString;
-    DataSource1.DataSet.FieldByName('ID_GRUPO').AsInteger := StrToInt(edtIdGrupo.Text);
-  finally
-    FreeAndNil(LModelGruposDM);
-  end;
-end;
-
-procedure TViewProdutosCadastrar.edtIdGrupoKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-begin
-  inherited;
-  if Key = VK_F8 then
+  if(imgFoto.Picture.Graphic = nil)then
   begin
-    ViewGruposBuscar := TViewGruposBuscar.Create(nil);
-    try
-      if ViewGruposBuscar.ShowModal = mrOk then
-        edtIdGrupo.Text := ViewGruposBuscar.IdSelecionado.ToString;
-    finally
-      FreeAndNil(ViewGruposBuscar);
+    if(ModelProdutosDM.QProdutosCadastroIMAGEM.AsString.Trim.IsEmpty)then
+      Exit;
+
+    LDestino := TUtils.GetPastaImgProdutos + ModelProdutosDM.QProdutosCadastroIMAGEM.AsString.Trim;
+    DeleteFile(LDestino);
+    ModelProdutosDM.QProdutosCadastroIMAGEM.Clear;
+  end
+  else if(not FFotoOrigemAlterar.Trim.IsEmpty)then
+  begin
+    LImgNome := ModelProdutosDM.QProdutosCadastroIMAGEM.AsString.Trim;
+    if(not LImgNome.IsEmpty)then
+    begin
+      LDestino := TUtils.GetPastaImgProdutos + LImgNome;
+      DeleteFile(LDestino);
     end;
+
+    LImgNome := FormatDateTime('YYYYmmdd_HHnnss_zzz', Now) + ExtractFileExt(FFotoOrigemAlterar);
+    LDestino := TUtils.GetPastaImgProdutos + LImgNome;
+
+    CopyFile(PWideChar(FFotoOrigemAlterar), PWideChar(LDestino), False);
+    ModelProdutosDM.QProdutosCadastroIMAGEM.AsString := LImgNome;
   end;
 end;
 
@@ -156,41 +148,34 @@ var
   LModelSubgruposDM: TModelSubgruposDM;
 begin
   inherited;
-  edtDescricaoSubgrupo.Clear;
-  if Trim(edtIdSubgrupo.Text).IsEmpty then
+
+  edtSubgrupo.Clear;
+  if(Trim(edtIdSubgrupo.Text).IsEmpty)then
     Exit;
 
   LModelSubgruposDM := TModelSubgruposDM.Create(nil);
   try
-    LModelSubgruposDM.LookSubgrupo(StrToIntDef(edtIdSubgrupo.Text, 0));
-    if LModelSubgruposDM.QLook.IsEmpty then
+    LModelSubgruposDM.LookSubgrupos(StrToIntDef(edtIdSubgrupo.Text, 0));
+    if(LModelSubgruposDM.QLook.IsEmpty)then
     begin
       edtIdSubgrupo.SetFocus;
-      raise Exception.Create('Subgrupo não localizado.');
+      raise Exception.Create('Subgrupo não localizado');
     end;
 
-    edtDescricaoSubgrupo.Text := LModelSubgruposDM.QLookDESCRICAO.AsString;
-    DataSource1.DataSet.FieldByName('ID_SUBGRUPO').AsInteger := StrToInt(edtIdSubgrupo.Text);
+    edtSubgrupo.Text := LModelSubgruposDM.QLookNOME.AsString;
   finally
-    FreeAndNil(LModelSubgruposDM);
+    LModelSubgruposDM.Free;
   end;
 end;
 
 procedure TViewProdutosCadastrar.edtIdSubgrupoKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
   inherited;
-  if DataSource1.DataSet.FieldByName('ID_GRUPO').AsInteger = 0 then
-  begin
-    edtIdGrupo.SetFocus;
-    raise Exception.Create('Antes de identificar um Subgrupo, é necessário identificar, primeiro, o Grupo.');
-  end;
-
-  if Key = VK_F9 then
+  if(Key = VK_F8)then
   begin
     ViewSubgruposBuscar := TViewSubgruposBuscar.Create(nil);
-    ViewSubgruposBuscar.FIdGrupo := DataSource1.DataSet.FieldByName('ID_GRUPO').AsInteger;
     try
-      if ViewSubgruposBuscar.ShowModal = mrOk then
+      if(ViewSubgruposBuscar.ShowModal = mrOk)then
         edtIdSubgrupo.Text := ViewSubgruposBuscar.IdSelecionado.ToString;
     finally
       FreeAndNil(ViewSubgruposBuscar);
@@ -198,104 +183,100 @@ begin
   end;
 end;
 
-procedure TViewProdutosCadastrar.edtPORCENTAGEM_VENDAExit(Sender: TObject);
-var
-  LPrecoVenda: string;
-begin
-  inherited;
-  if (DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat > 0) and
-    (DataSource1.DataSet.FieldByName('PRECO_CUSTO').AsFloat > 0) then
-    if DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat > 0 then
-    begin
-      LPrecoVenda := FormatFloat(',0.00', CalcularPrecoVenda);
-      if LPrecoVenda <> FormatFloat(',0.00', DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat) then
-        if Application.MessageBox(PChar(Format('O Preço de Venda atual é de %s. Deseja corrigir o Preço de Venda para %s?',
-          [FormatFloat(',0.00', DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat),
-          LPrecoVenda])), 'Confirmação', MB_ICONQUESTION + MB_YESNO) = ID_YES then
-            DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat :=
-              StrToFloat(StringReplace(LPrecoVenda, '.', '', []));
-    end
-    else
-      DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat := CalcularPrecoVenda;
-end;
-
-procedure TViewProdutosCadastrar.edtPRECO_CUSTOExit(Sender: TObject);
-var
-  LPrecoVenda: string;
-begin
-  inherited;
-  if DataSource1.DataSet.FieldByName('PRECO_CUSTO').AsFloat > 0 then
-    if DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat > 0 then
-    begin
-      if DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat > 0 then
-      begin
-        LPrecoVenda := FormatFloat(',0.00', CalcularPrecoVenda);
-        if LPrecoVenda <> FormatFloat(',0.00', DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat) then
-          if Application.MessageBox(PChar(Format('O Preço de Venda atual é de %s. Deseja corrigir o Preço de Venda para %s?',
-            [FormatFloat(',0.00', DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat),
-            LPrecoVenda])), 'Confirmação', MB_ICONQUESTION + MB_YESNO) = ID_YES then
-              DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat :=
-                StrToFloat(StringReplace(LPrecoVenda, '.', '', []));
-      end
-      else
-        DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat := CalcularPrecoVenda;
-    end
-    else
-      if DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat > 0 then
-        DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat := CalcularPorcentagemVenda;
-end;
-
-procedure TViewProdutosCadastrar.edtPRECO_VENDAExit(Sender: TObject);
-var
-  LPercentualVenda: string;
-begin
-  inherited;
-  if DataSource1.DataSet.FieldByName('PRECO_VENDA').AsFloat > 0 then
-    if DataSource1.DataSet.FieldByName('PRECO_CUSTO').AsFloat > 0 then
-      if DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat > 0 then
-      begin
-        LPercentualVenda := FormatFloat(',0.00', CalcularPorcentagemVenda);
-        if LPercentualVenda <> FormatFloat(',0.00', DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat) then
-          if Application.MessageBox(PChar(Format('O %% de Venda atual é de %s. Deseja corrigir o %% de Venda para %s?',
-            [FormatFloat(',0.00', DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat),
-            LPercentualVenda])), 'Confirmação', MB_ICONQUESTION + MB_YESNO) = ID_YES then
-            DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat :=
-              StrToFloat(StringReplace(LPercentualVenda, '.', '', []));
-      end
-      else
-        DataSource1.DataSet.FieldByName('PORCENTAGEM_VENDA').AsFloat := CalcularPorcentagemVenda;
-end;
-
 procedure TViewProdutosCadastrar.FormShow(Sender: TObject);
-var
-  I: Byte;
 begin
   inherited;
-  ModelProdutosDM.CadastrarGet(inherited IdRegistroAlterar);
 
-  if DataSource1.DataSet.IsEmpty then
-  begin
-    DataSource1.DataSet.Append;
-    chkAtivo.Checked := True;
-  end
+  FAlterarFoto := False;
+  FFotoOrigemAlterar := '';
+
+  ModelProdutosDM.CadastrarGet(inherited IdRegistroAlterar);
+  if(DataSource1.DataSet.IsEmpty)then
+    DataSource1.DataSet.Append
   else
   begin
     DataSource1.DataSet.Edit;
-    // A tabela contém no máximo 3 caracteres ref. à unidade. As unidades do Combo contém 'abreviação | descrição'.
-    // Percorre os itens do Combo até encontrar a unidade.
-    for I := 0 to Pred(cmbUnidade.Items.Count) do
-      if DataSource1.DataSet.FieldByName('UNIDADE').AsString = Trim(LeftStr(cmbUnidade.Items[I], 3)) then
-      begin
-        cmbUnidade.ItemIndex := I;
-        Break;
-      end;
-    edtIdGrupo.Text := DataSource1.DataSet.FieldByName('ID_GRUPO').AsString;
-    edtIdGrupoExit(edtIdGrupo);
-    edtIdSubgrupo.Text := DataSource1.DataSet.FieldByName('ID_SUBGRUPO').AsString;
     edtIdSubgrupoExit(edtIdSubgrupo);
+    Self.CarregarFotoAtual;
   end;
 
-  Self.edtNOME.SetFocus;
+  edtNome.SetFocus;
+end;
+
+procedure TViewProdutosCadastrar.CarregarFotoAtual;
+var
+  LFilePath: string;
+begin
+  LFilePath := TUtils.GetPastaImgProdutos + ModelProdutosDM.QProdutosCadastroIMAGEM.AsString.Trim;
+
+  if(FileExists(LFilePath))then
+    imgFoto.Picture.LoadFromFile(LFilePath);
+end;
+
+procedure TViewProdutosCadastrar.edtPrecoCustoExit(Sender: TObject);
+begin
+  inherited;
+  Self.CalcularPrecoVenda;
+end;
+
+procedure TViewProdutosCadastrar.edtPorcentagemExit(Sender: TObject);
+begin
+  inherited;
+  Self.CalcularPrecoVenda;
+end;
+
+procedure TViewProdutosCadastrar.CalcularPrecoVenda;
+begin
+  if(edtPrecoCusto.Field.AsFloat < 0)then
+    edtPrecoCusto.Field.AsFloat := 0;
+
+  if(edtPorcentagem.Field.AsFloat < 0)then
+    edtPorcentagem.Field.AsFloat := 0;
+
+  if(edtPrecoCusto.Field.AsFloat = 0)or(edtPorcentagem.Field.AsFloat = 0)then
+    Exit;
+
+  edtPrecoVenda.Field.AsFloat := edtPrecoCusto.Field.AsFloat +
+    ((edtPrecoCusto.Field.AsFloat * edtPorcentagem.Field.AsFloat) / 100);
+end;
+
+procedure TViewProdutosCadastrar.edtPrecoVendaExit(Sender: TObject);
+begin
+  inherited;
+  Self.CalcularPorcentagem;
+end;
+
+procedure TViewProdutosCadastrar.CalcularPorcentagem;
+begin
+  if(edtPrecoVenda.Field.AsFloat < 0)then
+    edtPrecoVenda.Field.AsFloat := 0;
+
+  if(edtPrecoVenda.Field.AsFloat  = 0)then
+  begin
+    edtPorcentagem.Field.AsFloat := 0;
+    Exit;
+  end;
+
+  edtPorcentagem.Field.AsFloat := ((edtPrecoVenda.Field.AsFloat / edtPrecoCusto.Field.AsFloat) * 100) - 100;
+  if(edtPorcentagem.Field.AsFloat < 0)then
+    edtPorcentagem.Field.AsFloat := 0;
+end;
+
+procedure TViewProdutosCadastrar.BuscarFoto1Click(Sender: TObject);
+begin
+  if(not OpenDialog1.Execute)then
+    Exit;
+
+  imgFoto.Picture.LoadFromFile(OpenDialog1.FileName);
+  FAlterarFoto := True;
+  FFotoOrigemAlterar := OpenDialog1.FileName;
+end;
+
+procedure TViewProdutosCadastrar.LimparFoto1Click(Sender: TObject);
+begin
+  imgFoto.Picture := nil;
+  FAlterarFoto := True;
+  FFotoOrigemAlterar := '';
 end;
 
 end.

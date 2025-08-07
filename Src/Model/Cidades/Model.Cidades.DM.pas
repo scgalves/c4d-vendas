@@ -3,9 +3,21 @@ unit Model.Cidades.DM;
 interface
 
 uses
-  System.SysUtils, System.Classes, Data.DB, FireDAC.Comp.DataSet, FireDAC.Comp.Client,
-  FireDAC.Stan.Param, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Error, FireDAC.DatS, FireDAC.Phys.Intf,
-  FireDAC.DApt.Intf, FireDAC.Stan.Async, FireDAC.DApt, System.RTTI, Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.DBCtrls;
+  System.SysUtils,
+  System.Classes,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Stan.Async,
+  FireDAC.DApt,
+  Data.DB,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client,
+  Model.Conexao.DM;
 
 type
   TModelCidadesDM = class(TDataModule)
@@ -22,20 +34,13 @@ type
     QLook: TFDQuery;
     QLookNOME: TStringField;
     QLookUF: TStringField;
-    QCidadesCadastroDTHR_INSERT: TSQLTimeStampField;
-    QCidadesCadastroDTHR_UPDATE: TSQLTimeStampField;
-    QCidadesBuscaDTHR_INSERT: TSQLTimeStampField;
-    QCidadesBuscaDTHR_UPDATE: TSQLTimeStampField;
     procedure QCidadesCadastroBeforePost(DataSet: TDataSet);
-    procedure DataModuleCreate(Sender: TObject);
-    procedure QCidadesCadastroNOMESetText(Sender: TField; const Text: string);
   private
-    { Private declarations }
   public
-    procedure CidadesBuscar(const ACondicao: string);
-    procedure CadastrarGet(const AIdCidade: integer);
     procedure ValidarDadosQueryCadastro;
-    procedure LookCidade(const AIdCidade: integer);
+    procedure CidadesBuscar(const ACondicao: string);
+    procedure CadastrarGet(const AIdCidade: Integer);
+    procedure LookCidade(const AIdCidade: Integer);
   end;
 
 var
@@ -45,27 +50,31 @@ implementation
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
-uses
-  Model.Conexao.DM, RTTI.FieldName, Exceptions.FieldName;
-
 {$R *.dfm}
 
-{ TModelCidadesDM }
+uses
+  Exceptions.FieldName;
 
-procedure TModelCidadesDM.CidadesBuscar(const ACondicao: string);
+procedure TModelCidadesDM.CadastrarGet(const AIdCidade: Integer);
+begin
+  QCidadesCadastro.Close;
+  QCidadesCadastro.SQL.Clear;
+  QCidadesCadastro.SQL.Add('select * from cidades');
+  QCidadesCadastro.SQL.Add('where(id = :IdCidade)');
+  QCidadesCadastro.ParamByName('IdCidade').AsInteger := AIdCidade;
+  QCidadesCadastro.Open;
+end;
+
+procedure TModelCidadesDM.CidadesBuscar(const ACondicao: String);
 begin
   QCidadesBusca.Close;
-  QCidadesBusca.SQL.Text := 'select * from cidade ' + ACondicao;
+  QCidadesBusca.SQL.Clear;
+  QCidadesBusca.SQL.Add('select * from cidades');
+  QCidadesBusca.SQL.Add(ACondicao);
   QCidadesBusca.Open;
 end;
 
-procedure TModelCidadesDM.DataModuleCreate(Sender: TObject);
-begin
-   QCidadesCadastro.FieldByName('ID').AutoGenerateValue := arDefault;
-   QCidadesBusca.FetchOptions.Mode := fmAll;
-end;
-
-procedure TModelCidadesDM.LookCidade(const AIdCidade: integer);
+procedure TModelCidadesDM.LookCidade(const AIdCidade: Integer);
 begin
   QLook.Close;
   QLook.ParamByName('IdCidade').AsInteger := AIdCidade;
@@ -77,31 +86,19 @@ begin
   Self.ValidarDadosQueryCadastro;
 end;
 
-procedure TModelCidadesDM.QCidadesCadastroNOMESetText(Sender: TField; const Text: string);
-begin
-  QCidadesCadastroNOME.AsString := QCidadesCadastroNOME.AsString.Trim;
-end;
-
 procedure TModelCidadesDM.ValidarDadosQueryCadastro;
 begin
-  if QCidadesCadastroNOME.AsString.Trim.IsEmpty then
-    raise ExceptionsFieldName.Create('Preencha o campo Nome.', 'NOME');
+  if(QCidadesCadastroNOME.AsString.Trim.IsEmpty)then
+    raise ExceptionsFieldName.Create('Preencha o campo nome', 'NOME');
 
-  if QCidadesCadastroUF.AsString.Trim.IsEmpty then
-    raise ExceptionsFieldName.Create('Preencha o campo UF.', 'UF');
+  if(QCidadesCadastroUF.AsString.Trim.IsEmpty)then
+    raise ExceptionsFieldName.Create('Preencha o campo UF', 'UF');
 
-  if (QCidadesCadastroCODIGO_IBGE.AsInteger > 0) and
-    (Length(QCidadesCadastroCODIGO_IBGE.AsString) <> 7) then // 7 caracteres ou sem preenchimento
-    raise ExceptionsFieldName.Create('O Código IBGE deve conter 7 caracteres.', 'CODIGO_IBGE');
-end;
-
-procedure TModelCidadesDM.CadastrarGet(const AIdCidade: integer);
-begin
-  QCidadesCadastro.Close;
-  QCidadesCadastro.SQL.Text := 'select * from cidade ' +
-    'where id = :pId';
-  QCidadesCadastro.ParamByName('pId').AsInteger := AIdCidade;
-  QCidadesCadastro.Open;
+  if(QCidadesCadastroCODIGO_IBGE.AsInteger > 0)then
+  begin
+    if(QCidadesCadastroCODIGO_IBGE.AsString.Length <> 7)then
+      raise ExceptionsFieldName.Create('Código do IBGE deve conter 7 caracteres', 'CODIGO_IBGE');
+  end;
 end;
 
 end.

@@ -76,4 +76,5 @@ modules/
 # Firebird/Interbase
 *.bak
 *.fbk
+*.fdb
 *.gdb

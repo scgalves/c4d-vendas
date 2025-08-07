@@ -3,21 +3,34 @@ unit View.Cidades.Buscar;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, View.Herancas.Buscar, Data.DB, Vcl.StdCtrls, Vcl.Buttons, Vcl.ExtCtrls,
-  Vcl.Grids, Vcl.DBGrids, Vcl.Menus, Vcl.Mask;
+  Winapi.Windows,
+  Winapi.Messages,
+  System.SysUtils,
+  System.Variants,
+  System.Classes,
+  Vcl.Graphics,
+  Vcl.Controls,
+  Vcl.Forms,
+  Vcl.Dialogs,
+  View.Herancas.Buscar,
+  Data.DB,
+  Vcl.StdCtrls,
+  Vcl.Buttons,
+  Vcl.ExtCtrls,
+  Vcl.Grids,
+  Vcl.DBGrids,
+  Model.Cidades.DM,
+  Vcl.Menus;
 
 type
   TViewCidadesBuscar = class(TViewHerancasBuscar)
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
   private
-
   protected
     procedure BuscarDados; override;
     procedure ChamarTelaCadastrar(const AId: Integer = 0); override;
   public
-    { Public declarations }
   end;
 
 var
@@ -25,22 +38,22 @@ var
 
 implementation
 
-uses
-  Model.Cidades.DM, View.Cidades.Cadastrar;
-
 {$R *.dfm}
+
+uses
+  View.Cidades.Cadastrar;
 
 procedure TViewCidadesBuscar.BuscarDados;
 var
-  LStrBuscar,
-    LCondicao: string;
+  LStrBuscar: string;
+  LCondicao: string;
 begin
-  LStrBuscar := QuotedStr('%' + edtBuscar.Text + '%').ToUpper;
+  LStrBuscar := QuotedStr('%'+ edtBuscar.Text +'%').ToUpper;
   LCondicao := '';
-  case rdgFiltros.ItemIndex of
-    0: LCondicao := 'where id like ' + LStrBuscar;
-    1: LCondicao := 'where upper(nome) like ' + LStrBuscar;
-    2: LCondicao := 'where upper(uf) like ' + LStrBuscar;
+  case rdGroupFiltros.ItemIndex of
+    0: LCondicao := 'where(id like ' + LStrBuscar + ')';
+    1: LCondicao := 'where(upper(nome) like ' + LStrBuscar + ')';
+    2: LCondicao := 'where(upper(uf) like ' + LStrBuscar + ')';
   end;
 
   ModelCidadesDM.CidadesBuscar(LCondicao);
@@ -55,9 +68,9 @@ begin
   LViewCidadesCadastrar := TViewCidadesCadastrar.Create(nil);
   try
     LViewCidadesCadastrar.IdRegistroAlterar := AId;
-    if LViewCidadesCadastrar.ShowModal = mrOk then
+    if(LViewCidadesCadastrar.ShowModal = mrOk)then
     begin
-      inherited IdAtual := LViewCidadesCadastrar.IdAtual;
+      inherited UltId := LViewCidadesCadastrar.UltId;
       Self.BuscarDados;
     end;
   finally
@@ -68,15 +81,8 @@ end;
 procedure TViewCidadesBuscar.FormCreate(Sender: TObject);
 begin
   inherited;
-  if not Assigned(ModelCidadesDM) then
+  if(ModelCidadesDM = nil)then
     ModelCidadesDM := TModelCidadesDM.Create(nil);
-
-  Self.DBGrid1.Columns[0].Width := 64;
-  Self.DBGrid1.Columns[1].Width := 431;
-  Self.DBGrid1.Columns[2].Width := 30;
-  Self.DBGrid1.Columns[3].Width := 80;
-  Self.DBGrid1.Columns[4].Width := 130;
-  Self.DBGrid1.Columns[5].Width := 130;
 end;
 
 procedure TViewCidadesBuscar.FormDestroy(Sender: TObject);

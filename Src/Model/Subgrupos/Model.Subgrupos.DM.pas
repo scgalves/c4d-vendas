@@ -3,37 +3,39 @@ unit Model.Subgrupos.DM;
 interface
 
 uses
-  System.SysUtils, System.Classes, FireDAC.Stan.Intf, FireDAC.Stan.Option, FireDAC.Stan.Param, FireDAC.Stan.Error,
-  FireDAC.DatS, FireDAC.Phys.Intf, FireDAC.DApt.Intf, FireDAC.Stan.Async, FireDAC.DApt, Data.DB, FireDAC.Comp.DataSet,
-  FireDAC.Comp.Client;
+  System.SysUtils,
+  System.Classes,
+  FireDAC.Stan.Intf,
+  FireDAC.Stan.Option,
+  FireDAC.Stan.Param,
+  FireDAC.Stan.Error,
+  FireDAC.DatS,
+  FireDAC.Phys.Intf,
+  FireDAC.DApt.Intf,
+  FireDAC.Stan.Async,
+  FireDAC.DApt,
+  Data.DB,
+  FireDAC.Comp.DataSet,
+  FireDAC.Comp.Client,
+  Model.Conexao.DM;
 
 type
   TModelSubgruposDM = class(TDataModule)
     QSubgruposCadastro: TFDQuery;
     QSubgruposBusca: TFDQuery;
     QSubgruposCadastroID: TIntegerField;
+    QSubgruposCadastroNOME: TStringField;
     QSubgruposBuscaID: TIntegerField;
-    QSubgruposCadastroDTHR_INSERT: TSQLTimeStampField;
-    QSubgruposCadastroDTHR_UPDATE: TSQLTimeStampField;
-    QSubgruposBuscaDTHR_INSERT: TSQLTimeStampField;
-    QSubgruposCadastroID_GRUPO: TIntegerField;
-    QSubgruposCadastroDESCRICAO: TStringField;
-    QSubgruposBuscaID_GRUPO: TIntegerField;
-    QSubgruposBuscaGRUPODESCRICAO: TStringField;
-    QSubgruposBuscaSUBGRUPODESCRICAO: TStringField;
-    QSubgruposBuscaDTHR_UPDATE: TSQLTimeStampField;
+    QSubgruposBuscaNOME: TStringField;
     QLook: TFDQuery;
-    QLookDESCRICAO: TStringField;
+    QLookNOME: TStringField;
     procedure QSubgruposCadastroBeforePost(DataSet: TDataSet);
-    procedure DataModuleCreate(Sender: TObject);
-    procedure QSubgruposCadastroDESCRICAOSetText(Sender: TField; const Text: string);
   private
   public
-    FIdGrupo: integer;
-    procedure SubgruposBuscar(const ACondicao: string);
-    procedure CadastrarGet(const AIdSubgrupo: integer);
     procedure ValidarDadosQueryCadastro;
-    procedure LookSubgrupo(const AIdSubgrupo: integer);
+    procedure SubgruposBuscar(const ACondicao: string);
+    procedure CadastrarGet(const AIdSubgrupo: Integer);
+    procedure LookSubgrupos(const AIdSubgrupo: Integer);
   end;
 
 var
@@ -43,43 +45,35 @@ implementation
 
 {%CLASSGROUP 'Vcl.Controls.TControl'}
 
-uses
-  Model.Conexao.DM, RTTI.FieldName, Exceptions.FieldName;
-
 {$R *.dfm}
 
-{ TModelPessoasDM }
+uses
+  Exceptions.FieldName;
 
-procedure TModelSubgruposDM.CadastrarGet(const AIdSubgrupo: integer);
+procedure TModelSubgruposDM.CadastrarGet(const AIdSubgrupo: Integer);
 begin
   QSubgruposCadastro.Close;
-  QSubgruposCadastro.SQL.Text := 'select * from subgrupo ' +
-    'where id = :pId';
-  QSubgruposCadastro.ParamByName('pId').AsInteger := AIdSubgrupo;
+  QSubgruposCadastro.SQL.Clear;
+  QSubgruposCadastro.SQL.Add('select * from subgrupos');
+  QSubgruposCadastro.SQL.Add('where(id = :IdSubgrupo)');
+  QSubgruposCadastro.ParamByName('IdSubgrupo').AsInteger := AIdSubgrupo;
   QSubgruposCadastro.Open;
 end;
 
-procedure TModelSubgruposDM.DataModuleCreate(Sender: TObject);
+procedure TModelSubgruposDM.SubgruposBuscar(const ACondicao: String);
 begin
-  QSubgruposCadastro.FieldByName('ID').AutoGenerateValue := arDefault;
-  QSubgruposBusca.FetchOptions.Mode := fmAll;
+  QSubgruposBusca.Close;
+  QSubgruposBusca.SQL.Clear;
+  QSubgruposBusca.SQL.Add('select * from subgrupos');
+  QSubgruposBusca.SQL.Add(ACondicao);
+  QSubgruposBusca.Open;
 end;
 
-procedure TModelSubgruposDM.LookSubgrupo(const AIdSubgrupo: integer);
+procedure TModelSubgruposDM.LookSubgrupos(const AIdSubgrupo: Integer);
 begin
   QLook.Close;
   QLook.ParamByName('IdSubgrupo').AsInteger := AIdSubgrupo;
   QLook.Open;
-end;
-
-procedure TModelSubgruposDM.SubgruposBuscar(const ACondicao: string);
-begin
-  QSubgruposBusca.Close;
-  QSubgruposBusca.SQL.Text := 'select s.id, s.descricao subgrupodescricao, s.id_grupo, g.descricao grupodescricao,' +
-    ' s.dthr_insert, s.dthr_update ' +
-    'from subgrupo s' +
-    ' join grupo g on g.id = s.id_grupo ' + ACondicao;
-  QSubgruposBusca.Open;
 end;
 
 procedure TModelSubgruposDM.QSubgruposCadastroBeforePost(DataSet: TDataSet);
@@ -87,15 +81,10 @@ begin
   Self.ValidarDadosQueryCadastro;
 end;
 
-procedure TModelSubgruposDM.QSubgruposCadastroDESCRICAOSetText(Sender: TField; const Text: string);
-begin
-  QSubgruposCadastroDESCRICAO.AsString := QSubgruposCadastroDESCRICAO.AsString.Trim;
-end;
-
 procedure TModelSubgruposDM.ValidarDadosQueryCadastro;
 begin
-  if QSubgruposCadastroDESCRICAO.AsString.Trim.IsEmpty then
-    raise ExceptionsFieldName.Create('Preencha o campo Descrição.', 'DESCRICAO');
+  if(QSubgruposCadastroNOME.AsString.Trim.IsEmpty)then
+    raise ExceptionsFieldName.Create('Preencha o campo nome', 'NOME');
 end;
 
 end.

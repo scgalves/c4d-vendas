@@ -3,353 +3,180 @@ unit Utils;
 interface
 
 uses
-  System.SysUtils, System.Classes, System.Rtti, Vcl.Forms, Vcl.Controls, Vcl.ComCtrls, Exceptions.FieldName,
-  Vcl.Graphics, Vcl.ExtCtrls, Vcl.Buttons;
+  System.SysUtils,
+  System.Classes,
+  System.RTTI,
+  Vcl.Forms,
+  Vcl.Controls,
+  Vcl.ComCtrls,
+  Exceptions.FieldName,
+  RTTI.FieldName;
 
 type
   TUtils = class
   private
-    class procedure SetFocusComponent(AWinControl: TWinControl);
+    class procedure SetFocusComponent(const AWinControl: TWinControl);
   public
+    class procedure PegarDadosLancamento(const AValue: string; var ACodigo: string; var AQtd, ADesconto, AAcrescimo: Double);
+    class function GetPastaRaiz: string;
+    class function GetPastaImg: string;
+    class function GetPastaImgProdutos: string;
     class procedure TratarExceptionsFieldName(const AForm: TForm; const E: ExceptionsFieldName);
-
-    class procedure MakeRoundedControl(AControl: TWinControl);
-
-    class procedure ColorirPanelsDeBotoes(const APanels: TArray<TPanel>; const ACor: TColor);
-
-    /// <summary>Habilita ou Desablita objetos de uma lista.</summary>
-    /// param name="AControls: TArray<TControl>"Array de objetos.</param>
-    /// param name="ADesabilitar: Boolean = True"Informar <c>False</c> quando for para Desabilitar os objetos.</param>
-    class procedure HabilitarDesabilitarObjetos(const AControls: TArray<TControl>; const ADesabilitar: Boolean = True);
-
-    /// <summary>Mostra ou Oculta objetos de uma lista.</summary>
-    /// param name="AControls: TArray<TControl>"Array de objetos.</param>
-    /// param name="AOcultar: Boolean = True"Informar <c>False</c> quando for para Mostrar os objetos.</param>
-    class procedure MostrarOcultarObjetos(const AControls: TArray<TControl>; const AOcultar: Boolean = True);
-    class procedure EstiloPadraoEmBotoesSemGravar(const AButtons: TArray<TSpeedButton>);
-
-    /// <summary>Configura o layout do botão ao passar o mouse sobre.</summary>
-    class procedure OnMouseEnterButton(const Sender: TObject);
-
-    /// <summary>Configura o layout do botão ao perder o foco do mouse.</summary>
-    class procedure OnMouseLeaveButton(const Sender: TObject);
-
-    class function CpfValido(const ACpf: string): Boolean;
-
-    class function CnpjValido(const ACnpj: string): Boolean;
-
-    class function EmailValido(const AEmail: string): Boolean;
-
-    /// <summary>Captura a data e hora do servidor onde está o banco de dados.</summary>
-    class function GetDataHoraServidor: TDateTime;
-
-    /// <summary>Arredondamento de valores com casas decimais. /summary>
-    class function Arredondar(AValue: Single; ACasasDecimais: Byte): Single;
-
-    class procedure TryActiveControlOnExit;
   end;
 
 implementation
 
-uses
-  RTTI.FieldName, Winapi.Windows, Winapi.Messages, Lib.Helper, System.StrUtils, RegularExpressions,
-  FireDAC.Comp.Client, Model.Conexao.DM, Consts, System.Math;
+class procedure TUtils.PegarDadosLancamento(const AValue: string; var ACodigo: string;
+  var AQtd, ADesconto, AAcrescimo: Double);
+var
+  LValue: string;
+  LPosAsterisco: Integer;
+  LPosMais: Integer;
+  LPosMenos: Integer;
+  i: Integer;
+  LQtd: string;
+  LDesconto: string;
+  LAcrescimo: string;
+begin
+  LValue := AValue.Trim;
+  ACodigo := '';
+  AQtd := 1;
+  ADesconto := 0;
+  AAcrescimo := 0;
 
-{ TUtils }
+  LPosAsterisco := Pos('*', LValue);
+  LPosMais := Pos('+', LValue);
+  LPosMenos := Pos('-', LValue);
+
+  if(LPosAsterisco <= 0)and(LPosMais <= 0)and(LPosMenos <= 0)then
+  begin
+    ACodigo := LValue;
+    Exit;
+  end;
+
+  //PEGAR O CODIGO
+  for i := LValue.Length downto 1 do
+  begin
+    if(LValue[i] = '*')or(LValue[i] = '-')or(LValue[i] = '+')then
+      Break;
+
+    ACodigo := LValue[i] + ACodigo;
+  end;
+
+  if(LPosMais > 0)then
+  begin
+    for i := Pred(LPosMais) downto 1 do
+    begin
+      if(LValue[i] = '*')or(LValue[i] = '-')then
+        Break;
+
+      LAcrescimo := LValue[i] + LAcrescimo;
+    end;
+
+    AAcrescimo := StrToFloatDef(LAcrescimo, 0);
+  end;
+
+  if(LPosMenos > 0)then
+  begin
+    for i := Pred(LPosMenos) downto 1 do
+    begin
+      if(LValue[i] = '*')or(LValue[i] = '+')then
+        Break;
+
+      LDesconto := LValue[i] + LDesconto;
+    end;
+
+    ADesconto := StrToFloatDef(LDesconto, 0);
+  end;
+
+  if(LPosAsterisco > 0)then
+  begin
+    for i := Pred(LPosAsterisco) downto 1 do
+    begin
+      if(LValue[i] = '+')or(LValue[i] = '-')then
+        Break;
+
+      LQtd := LValue[i] + LQtd;
+    end;
+
+    AQtd := StrToFloatDef(LQtd, 0);
+  end;
+end;
+
+class function TUtils.GetPastaRaiz: string;
+begin
+  Result := IncludeTrailingPathDelimiter(ExtractFileDir(ParamStr(0)));
+end;
+
+class function TUtils.GetPastaImg: string;
+begin
+  Result := IncludeTrailingPathDelimiter(Self.GetPastaRaiz + 'Img');
+end;
+
+class function TUtils.GetPastaImgProdutos: string;
+begin
+  Result := IncludeTrailingPathDelimiter(Self.GetPastaImg + 'Produtos');
+end;
 
 class procedure TUtils.TratarExceptionsFieldName(const AForm: TForm; const E: ExceptionsFieldName);
 var
-   LRttiContext: TRttiContext;
-   LRttiType: TRttiType;
-   LRttiField: TRttiField;
-   LCustomAttribute: TCustomAttribute;
-   LFieldName: FieldName;
-   LComponent: TComponent;
+  LRttiContext: TRttiContext;
+  LRttiType: TRttiType;
+  LRttiField: TRttiField;
+  LCustomAttribute: TCustomAttribute;
+  LFieldName: FieldName;
+  LComponent: TComponent;
 begin
   LRttiContext := TRttiContext.Create;
   LRttiType := LRttiContext.GetType(AForm.ClassInfo);
+
   for LRttiField in LRttiType.GetFields do
   begin
-    if LRttiField.Parent <> LRttiType then // Para não se ocupar com os componentes do form parent
+    if(LRttiField.Parent <> LRttiType)then
       Continue;
 
     for LCustomAttribute in LRttiField.GetAttributes do
     begin
-      if not (LCustomAttribute is FieldName) then
+      if not(LCustomAttribute is FieldName)then
         Continue;
 
       LFieldName := FieldName(LCustomAttribute);
-      if LFieldName.Nome.ToUpper <> E.FieldName then
+      if(LFieldName.Nome.ToUpper <> E.FieldName.ToUpper)then
         Continue;
 
       LComponent := AForm.FindComponent(LRttiField.Name);
-      if LComponent = nil then
+      if(LComponent = nil)then
         Continue;
 
-      if not (LComponent is TWinControl) then
-        Continue
-      else
-        Self.SetFocusComponent(TWinControl(LComponent));
+      if not(LComponent is TWinControl)then
+        Continue;
+
+      Self.SetFocusComponent(TWinControl(LComponent));
     end;
   end;
 
   raise Exception.Create(E.Message);
 end;
 
-class procedure TUtils.TryActiveControlOnExit;
-begin
-  if Screen.ActiveControl <> nil then
-//    Screen.ActiveForm.ActiveControl.Perform(CM_EXIT, 0, 0);
-//    Screen.ActiveForm.ActiveControl.Perform(WM_NEXTDLGCTL, 1, 0);
-    keybd_event(VK_TAB, 0, KEYEVENTF_EXTENDEDKEY or 0, 0);
-end;
-
-class function TUtils.Arredondar(AValue: Single; ACasasDecimais: Byte): Single;
-begin
-  Result := SimpleRoundTo(AValue, ACasasDecimais * -1);
-end;
-
-class function TUtils.CnpjValido(const ACnpj: string): Boolean;
-{https://www.devmedia.com.br/validando-o-cnpj-em-uma-aplicacao-delphi/22372}
-var
-  dig13, dig14: string;
-  sm, i, r, peso: integer;
-begin
-  try
-{ *-- Cálculo do 1o. Digito Verificador --* }
-    sm := 0;
-    peso := 2;
-    for i := 12 downto 1 do
-    begin
-// StrToInt converte o i-ésimo caractere do ACnpj em um número
-      sm := sm + (StrToInt(ACnpj[i]) * peso);
-      peso := peso + 1;
-      if (peso = 10) then
-        peso := 2;
-    end;
-    r := sm mod 11;
-    if ((r = 0) or (r = 1))
-       then dig13 := '0'
-{$WARNINGS OFF}
-    else str((11-r):1, dig13); // converte um número no respectivo caractere numérico
-{$WARNINGS ON}
-
-{ *-- Cálculo do 2o. Digito Verificador --* }
-    sm := 0;
-    peso := 2;
-    for i := 13 downto 1 do
-    begin
-      sm := sm + (StrToInt(ACnpj[i]) * peso);
-      peso := peso + 1;
-      if (peso = 10) then
-        peso := 2;
-    end;
-    r := sm mod 11;
-    if ((r = 0) or (r = 1))
-       then dig14 := '0'
-{$WARNINGS OFF}
-    else str((11-r):1, dig14);
-{$WARNINGS ON}
-
-{ Verifica se os digitos calculados conferem com os digitos informados. }
-    Result := ((dig13 = ACnpj[13]) and (dig14 = ACnpj[14]));
-  except
-    Result := False;
-  end;
-end;
-
-class procedure TUtils.ColorirPanelsDeBotoes(const APanels: TArray<TPanel>; const ACor: TColor);
-var
-  I: Word;
-begin
-  for I := Low(APanels) to High(APanels) do
-    TPanel(APanels[I]).Color := ACor;
-end;
-
-class function TUtils.CpfValido(const ACpf: string): Boolean;
-{https://www.devmedia.com.br/forum/verificar-o-cnpj-como-faco/132387}
-var
-  n1,n2,n3,n4,n5,n6,n7,n8,n9:integer;
-  d1,d2:integer;
-  digitado, calculado:string;
-begin
-  n1:= StrToInt(ACpf[1]);
-  n2:= StrToInt(ACpf[2]);
-  n3:= StrToInt(ACpf[3]);
-  n4:= StrToInt(ACpf[4]);
-  n5:= StrToInt(ACpf[5]);
-  n6:= StrToInt(ACpf[6]);
-  n7:= StrToInt(ACpf[7]);
-  n8:= StrToInt(ACpf[8]);
-  n9:= StrToInt(ACpf[9]);
-  d1:= n9*2+n8*3+n7*4+n6*5+n5*6+n4*7+n3*8+n2*9+n1*10;
-  d1:= 11-(d1 mod 11);
-  if d1>=10 then
-    d1:=0;
-  d2:= d1*2+n9*3+n8*4+n7*5+n6*6+n5*7+n4*8+n3*9+n2*10+n1*11;
-  d2:= 11-(d2 mod 11);
-  if d2>=10 then
-    d2:=0;
-  calculado:= inttostr(d1)+inttostr(d2);
-  digitado:= ACpf[10]+ACpf[11];
-
-  Result := calculado = digitado;
-end;
-
-class function TUtils.EmailValido(const AEmail: string): Boolean;
-var
-  RegEx: TRegEx;
-begin
-  RegEx := TRegex.Create('^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]*[a-zA-Z0-9]+$');
-  Result := RegEx.Match(AEmail).Success;
-end;
-
-class procedure TUtils.EstiloPadraoEmBotoesSemGravar(const AButtons: TArray<TSpeedButton>);
-var
-  I: Word;
-begin
-  for I := Low(AButtons) to High(AButtons) do
-    TSpeedButton(AButtons[I]).DefaultStyleButton;
-end;
-
-class function TUtils.GetDataHoraServidor: TDateTime;
-var
-  qry: TFDQuery;
-begin
-  try
-    qry := TFDQuery.Create(nil);
-    qry.Connection := ModelConexaoDM.FDConnection1;
-    qry.SQL.Text := 'select current_timestamp from rdb$database';
-    qry.Open;
-    Result := qry.Fields[0].Value;
-  finally
-    qry.Close;
-    FreeAndNil(qry);
-  end;
-end;
-
-class procedure TUtils.HabilitarDesabilitarObjetos(const AControls: TArray<TControl>; const ADesabilitar: Boolean = True);
-var
-  I: Word;
-begin
-  for I := Low(AControls) to High(AControls) do
-    TControl(AControls[I]).Enabled := ADesabilitar = False;
-end;
-
-class procedure TUtils.MakeRoundedControl(AControl: TWinControl);
-var
-  R: TRect;
-  Rgn: HRGN;
-begin
-  with AControl do
-  begin
-    R := ClientRect;
-    rgn := CreateRoundRectRgn(R.Left, R.Top, R.Right, R.Bottom, 20, 20);
-    Perform(EM_GETRECT, 0, lParam(@r));
-    InflateRect(r, - 5, - 5);
-    Perform(EM_SETRECTNP, 0, lParam(@r));
-    SetWindowRgn(Handle, rgn, True);
-    Invalidate;
-  end;
-end;
-
-class procedure TUtils.MostrarOcultarObjetos(const AControls: TArray<TControl>; const AOcultar: Boolean);
-var
-  I: Word;
-begin
-  for I := Low(AControls) to High(AControls) do
-    TControl(AControls[I]).Visible := AOcultar = False;
-end;
-
-class procedure TUtils.OnMouseEnterButton(const Sender: TObject);
-var
-  LControl1,
-    LControl2: TControl;
-  S: string;
-begin
-  if Sender.ClassType <> TSpeedButton then
-    raise Exception.Create('Somente componentes da classe TSpeedButton podem usar este método.');
-
-  if (Sender as TSpeedButton).Tag = 1 then
-    Exit;
-
-  LControl2 := (Sender as TControl).Parent;
-  if LControl2.ClassType <> TPanel then
-    raise Exception.Create('A classe do Parent do botão está errada. Classe suportada: TPanel. O botão tem que estar' +
-      ' dentro de um TPanel.');
-
-  S := RightStr(LControl2.Name, 1);
-  if S <> '2' then
-    raise Exception.Create('O nome do Parent do botão ' + (Sender as TSpeedButton).Name + ' tem que terminar com "2".' +
-      ' Ex.: pnlBtnCadastrar2.');
-
-  LControl1 := (LControl2 as TControl).Parent;
-  if LControl1.ClassType <> TPanel then
-    raise Exception.Create('A classe do Parent do Parent do botão está errada. Classe suportada: TPanel. O botão tem' +
-      ' que estar dentro de um TPanel, e este dentro de um TPanel.');
-
-  S := RightStr(LControl1.Name, 1);
-  if S <> '1' then
-    raise Exception.Create('O nome do Parent do Parent do botão ' + (Sender as TSpeedButton).Name + ' tem que' +
-      ' terminar com "1". Ex.: pnlBtnCadastrar1.');
-
-  (LControl1 as TPanel).Color := Consts.C_GREEN_MID_LIGHT;
-  (Sender as TSpeedButton).Font.Color := Consts.C_GREEN_MID_LIGHT;
-  (Sender as TSpeedButton).Tag := 1;
-end;
-
-class procedure TUtils.OnMouseLeaveButton(const Sender: TObject);
-var
-  LControl1,
-    LControl2: TControl;
-  S: string;
-begin
-  if Sender.ClassType <> TSpeedButton then
-    raise Exception.Create('Somente componentes da classe TSpeedButton podem usar este método.');
-
-  (Sender as TSpeedButton).Tag := 0;
-  (Sender as TSpeedButton).Font.Color := Consts.C_GREEN_STRONG;
-
-  LControl2 := (Sender as TControl).Parent;
-  if LControl2.ClassType <> TPanel then
-    raise Exception.Create('A classe do Parent do botão está errada. Classe suportada: TPanel. O botão tem que estar' +
-      ' dentro de um TPanel.');
-
-  S :=  RightStr(LControl2.Name, 1);
-  if S <> '2' then
-    raise Exception.Create('O nome do Parent do botão ' + (Sender as TSpeedButton).Name + ' tem que terminar com "2".' +
-      ' Ex.: pnlBtnCadastrar2.');
-
-  LControl1 := (LControl2 as TControl).Parent;
-  if LControl1.ClassType <> TPanel then
-    raise Exception.Create('A classe do Parent do Parent do botão está errada. Classe suportada: TPanel. O botão tem' +
-      ' que estar dentro de um TPanel, e este dentro de um TPanel.');
-
-  S := RightStr(LControl1.Name, 1);
-  if S <> '1' then
-    raise Exception.Create('O nome do Parent do Parent do botão ' + (Sender as TSpeedButton).Name + ' tem que' +
-      ' terminar com "1". Ex.: pnlBtnCadastrar1.');
-
-  (LControl1 as TPanel).Color := Consts.C_GREEN_STRONG;
-end;
-
-
-class procedure TUtils.SetFocusComponent(AWinControl: TWinControl);
+class procedure TUtils.SetFocusComponent(const AWinControl: TWinControl);
 var
   LParent: TComponent;
 begin
   LParent := AWinControl.Parent;
-  while (LParent <> nil) and (LParent.ClassParent <> TForm) do
+  while(LParent <> nil)and(LParent.ClassParent <> TForm)do
   begin
-    if (LParent is TTabSheet) then
-      if not TTabSheet(LParent).Showing then
+    if(LParent is TTabSheet)then
+      if(not TTabSheet(LParent).Showing)then
         TTabSheet(LParent).Show;
 
     LParent := TWinControl(LParent).Parent;
   end;
 
-  if AWinControl.CanFocus then
+  if(AWinControl.CanFocus)then
     AWinControl.SetFocus;
 end;
+
+initialization
+  ForceDirectories(TUtils.GetPastaImgProdutos)
 
 end.
